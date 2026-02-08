@@ -75,7 +75,8 @@ export function usePipeline() {
       if (!response.ok) {
         throw new Error(`Failed to fetch pipeline: ${response.statusText}`);
       }
-      const stages: PipelineStage[] = await response.json();
+      const json = await response.json();
+      const stages: PipelineStage[] = json.stages ?? json ?? [];
       setStages(stages);
       return stages;
     },

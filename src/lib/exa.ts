@@ -55,6 +55,7 @@ export interface ExaContentsResponse {
 export interface SearchCandidatesOptions {
   numResults?: number;
   category?: "linkedin profiles" | "company" | "people" | "tweet" | "research paper" | "news" | "pdf";
+  includeDomains?: string[];
 }
 
 // ─── Search ─────────────────────────────────────────────────────────────────
@@ -68,7 +69,11 @@ export async function searchCandidates(
   query: string,
   options?: SearchCandidatesOptions,
 ): Promise<ExaSearchResponse> {
-  const { numResults = 10, category = "linkedin profiles" } = options ?? {};
+  const {
+    numResults = 10,
+    category = "linkedin profiles",
+    includeDomains = ["linkedin.com"],
+  } = options ?? {};
 
   const response = await fetch(`${EXA_BASE_URL}/search`, {
     method: "POST",
@@ -79,6 +84,7 @@ export async function searchCandidates(
       numResults,
       category,
       useAutoprompt: true,
+      includeDomains,
     }),
   });
 

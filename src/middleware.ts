@@ -4,6 +4,9 @@ import { createServerClient } from "@supabase/ssr";
 // Routes that authenticated users should be redirected away from
 const authRoutes = ["/login", "/signup"];
 
+// Protected routes that require authentication
+const protectedRoutes = ["/search", "/candidates", "/pipeline", "/saved-searches", "/settings"];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -43,8 +46,10 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Check if the current route is a protected /app/* route
-  const isAppRoute = pathname.startsWith("/app");
+  // Check if the current route is a protected route
+  const isAppRoute = protectedRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route + "/"),
+  );
 
   // Check if the current route is an auth route (login/signup)
   const isAuthRoute = authRoutes.some(
@@ -59,10 +64,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Redirect authenticated users away from auth pages to /app
+  // Redirect authenticated users away from auth pages to /search
   if (isAuthRoute && user) {
     const appUrl = request.nextUrl.clone();
-    appUrl.pathname = "/app";
+    appUrl.pathname = "/search";
     return NextResponse.redirect(appUrl);
   }
 
