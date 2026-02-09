@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
 /* ========================================
-   TALIST.AI — MONOLITH DESIGN SYSTEM
-   Dark. Brutalist. Precise.
+   TALIST.AI — DESIGN SYSTEM
+   Dark theme adapted from Recruit 3
+   Inter headings + IBM Plex Sans body
    ======================================== */
 
 :root {
+  /* Legacy Monolith tokens (landing/login/signup pages) */
   --mono-bg: #121212;
   --mono-bg-hover: #1a1a1a;
   --mono-fg: #FFFFFF;
@@ -17,12 +19,80 @@
   --mono-ghost: rgba(255, 255, 255, 0.2);
   --mono-whisper: rgba(255, 255, 255, 0.08);
   --mono-success: #22c55e;
+  --mono-accent-green: #2D7A4F;
+  --mono-accent-green-hover: #246841;
+  --mono-accent-green-active: #1B5633;
+
+  /* ── Recruit 3 Design System (Dark Mode) ─────────────────────── */
+
+  /* Primary Brand */
+  --primary: #4ade80;
+  --primary-hover: #22c55e;
+  --primary-light: rgba(45, 75, 62, 0.3);
+
+  /* Backgrounds */
+  --bg-primary: #1A1C19;
+  --bg-secondary: #1E201C;
+  --bg-surface: #242622;
+  --bg-elevated: #2a2c28;
+  --bg-white: #1e201c;
+
+  /* Text */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-muted: #64748b;
+
+  /* Borders */
+  --border-light: #333631;
+  --border-default: #404440;
+  --border-focus: #4ade80;
+
+  /* Semantic Colors */
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.15);
+  --success-text: #4ade80;
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.15);
+  --warning-text: #fbbf24;
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.15);
+  --error-text: #f87171;
+
+  /* Match Status */
+  --match-bg: rgba(34, 197, 94, 0.15);
+  --match-text: #4ade80;
+  --miss-bg: rgba(239, 68, 68, 0.15);
+  --miss-text: #f87171;
+  --unclear-bg: rgba(148, 163, 184, 0.15);
+  --unclear-text: #94a3b8;
+
+  /* Criteria Colors */
+  --criteria-purple: #a855f7;
+  --criteria-orange: #f97316;
+  --criteria-blue: #3b82f6;
+  --criteria-gray: #cbd5e1;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+
+  /* Border Radius — Minimal */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-base: 0.15s ease;
 }
 
 @theme inline {
-  --color-background: var(--mono-bg);
-  --color-foreground: var(--mono-fg);
-  --font-sans: var(--font-display);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-display), 'IBM Plex Sans', system-ui, sans-serif;
+  --font-display: var(--font-heading), 'Inter', system-ui, sans-serif;
   --font-mono: var(--font-mono);
 }
 
@@ -41,20 +111,267 @@ html {
 }
 
 body {
-  background-color: #121212;
-  color: #FFFFFF;
-  font-family: var(--font-display), 'Inter', sans-serif;
-  line-height: 1.6;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-display), 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   overflow-x: hidden;
 }
 
+/* Typography — Inter for headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1rem; }
+
 ::selection {
-  background: #FFFFFF;
-  color: #000000;
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
 /* ========================================
-   PILL NAV
+   SCROLLBAR — Thin
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-default);
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 10px;
+}
+
+/* ========================================
+   DENSE TABLE
+   ======================================== */
+
+.dense-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.dense-table th,
+.dense-table td {
+  padding: 4px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-right: 1px solid var(--border-light);
+}
+
+.dense-table th:last-child,
+.dense-table td:last-child {
+  border-right: none;
+}
+
+.dense-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dense-table td {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.dense-table tbody tr:hover {
+  background: var(--bg-surface);
+}
+
+/* ========================================
+   BUTTON SYSTEM
+   ======================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background: var(--mono-accent-green);
+  color: white;
+  border-color: var(--mono-accent-green);
+}
+
+.btn-primary:hover {
+  background: var(--mono-accent-green-hover);
+  border-color: var(--mono-accent-green-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-color: var(--border-light);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-tertiary);
+}
+
+.btn-ghost:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* ========================================
+   INPUT
+   ======================================== */
+
+.input-base {
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 12px;
+  background: var(--bg-surface);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.input-base:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.input-base::placeholder {
+  color: var(--text-muted);
+}
+
+/* ========================================
+   CHECKBOX
+   ======================================== */
+
+input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  accent-color: var(--mono-accent-green);
+}
+
+/* ========================================
+   MATCH BADGES
+   ======================================== */
+
+.match-badge {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.match-badge-match {
+  background: var(--match-bg);
+  color: var(--match-text);
+}
+
+.match-badge-miss {
+  background: var(--miss-bg);
+  color: var(--miss-text);
+}
+
+.match-badge-unclear {
+  background: var(--unclear-bg);
+  color: var(--unclear-text);
+}
+
+/* ========================================
+   CRITERIA DOTS
+   ======================================== */
+
+.criteria-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.criteria-dot-purple { background: var(--criteria-purple); }
+.criteria-dot-orange { background: var(--criteria-orange); }
+.criteria-dot-blue { background: var(--criteria-blue); }
+.criteria-dot-gray { background: var(--criteria-gray); }
+
+/* ========================================
+   AVATAR
+   ======================================== */
+
+.avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ========================================
+   FOCUS
+   ======================================== */
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   LANDING PAGE STYLES (preserved)
    ======================================== */
 
 .pill-nav {
@@ -66,10 +383,6 @@ body {
   padding: 0.75rem 1.5rem;
 }
 
-/* ========================================
-   BRUTALIST CARD
-   ======================================== */
-
 .brutalist-card {
   background: #121212;
   border: 2px solid var(--mono-border);
@@ -80,63 +393,6 @@ body {
   border-color: #FFFFFF;
   background: #1a1a1a;
 }
-
-/* ========================================
-   ANIMATIONS
-   ======================================== */
-
-@keyframes wireframe-spin {
-  from { transform: rotate3d(1, 1, 1, 0deg); }
-  to { transform: rotate3d(1, 1, 1, 360deg); }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes typing-cursor {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.wireframe-spin {
-  animation: wireframe-spin 8s linear infinite;
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
-
-.animation-delay-100 { animation-delay: 100ms; }
-.animation-delay-200 { animation-delay: 200ms; }
-.animation-delay-300 { animation-delay: 300ms; }
-.animation-delay-400 { animation-delay: 400ms; }
-.animation-delay-500 { animation-delay: 500ms; }
-
-/* ========================================
-   SECTION DIVIDER LINE
-   ======================================== */
 
 .divider-line {
   position: relative;
@@ -151,4 +407,60 @@ body {
   height: 96px;
   width: 1px;
   background: linear-gradient(to top, rgba(255, 255, 255, 0.2), transparent);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes wireframe-spin {
+  from { transform: rotate3d(1, 1, 1, 0deg); }
+  to { transform: rotate3d(1, 1, 1, 360deg); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes typing-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.wireframe-spin { animation: wireframe-spin 8s linear infinite; }
+.animate-fade-in-up { animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-in { animation: fadeIn 0.5s ease forwards; }
+.animate-slide-up { animation: slideUp 0.2s ease; }
+
+.animation-delay-100 { animation-delay: 100ms; }
+.animation-delay-200 { animation-delay: 200ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+.animation-delay-400 { animation-delay: 400ms; }
+.animation-delay-500 { animation-delay: 500ms; }
+
+.shimmer {
+  background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-elevated) 50%, var(--bg-surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
 }

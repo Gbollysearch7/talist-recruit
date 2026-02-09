@@ -4,12 +4,14 @@ import type { Candidate } from "@/types/database";
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface SearchFilters {
+  numResults?: number;
   location?: string;
   title?: string;
   company?: string;
   skills?: string[];
   experienceMin?: number;
   experienceMax?: number;
+  excludeSearchIds?: string[];
 }
 
 interface SearchState {

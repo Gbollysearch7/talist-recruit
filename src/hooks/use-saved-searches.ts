@@ -37,7 +37,8 @@ export function useSavedSearches() {
           `Failed to fetch saved searches: ${response.statusText}`
         );
       }
-      return response.json();
+      const json = await response.json();
+      return json.savedSearches ?? json ?? [];
     },
   });
 

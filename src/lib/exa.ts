@@ -28,6 +28,9 @@ export interface ExaSearchResult {
   score: number;
   publishedDate?: string;
   author?: string;
+  text?: string;
+  highlights?: string[];
+  highlightScores?: number[];
 }
 
 export interface ExaSearchResponse {

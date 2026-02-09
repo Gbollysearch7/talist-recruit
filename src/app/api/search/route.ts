@@ -12,6 +12,7 @@ interface SearchRequestBody {
     location?: string;
     title?: string;
     company?: string;
+    excludeSearchIds?: string[];
   };
 }
 
@@ -32,7 +33,7 @@ function parseLinkedInTitle(pageTitle: string | undefined): {
   if (!pageTitle) return { name: "Unknown", jobTitle: null, company: null };
 
   // Strip trailing "| LinkedIn" or "- LinkedIn"
-  let cleaned = pageTitle.replace(/\s*[|–-]\s*LinkedIn\s*$/i, "").trim();
+  const cleaned = pageTitle.replace(/\s*[|–-]\s*LinkedIn\s*$/i, "").trim();
 
   // Split by common delimiters: " - ", " – ", " | "
   const parts = cleaned.split(/\s*[-–|]\s*/).filter(Boolean);
@@ -53,7 +54,7 @@ function parseLinkedInTitle(pageTitle: string | undefined): {
       return { name, jobTitle: atMatch[1].trim(), company: atMatch[2].trim() };
     }
     // If it looks like a role (contains common title words), treat as title
-    if (/engineer|developer|manager|director|designer|analyst|lead|head|vp|cto|ceo|founder|consultant/i.test(second)) {
+    if (/engineer|developer|manager|director|designer|analyst|lead|head|vp|cto|ceo|founder|consultant|product|marketing|senior|junior|principal|staff/i.test(second)) {
       return { name, jobTitle: second, company: null };
     }
     return { name, jobTitle: null, company: second };
@@ -65,6 +66,98 @@ function parseLinkedInTitle(pageTitle: string | undefined): {
     jobTitle: parts[1].trim(),
     company: parts[2].trim(),
   };
+}
+
+/**
+ * Parse the LinkedIn profile text to extract structured data.
+ * LinkedIn profile text typically starts with headline info followed by experience.
+ */
+function parseLinkedInText(text: string | undefined | null): {
+  jobTitle: string | null;
+  company: string | null;
+  location: string | null;
+} {
+  if (!text) return { jobTitle: null, company: null, location: null };
+
+  // LinkedIn text usually has the headline near the top.
+  // Common patterns in the first few lines:
+  // "Senior Product Manager at Google"
+  // "Software Engineer · Amazon"
+  // "Product Designer | Figma | Previously at Uber"
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+
+  let jobTitle: string | null = null;
+  let company: string | null = null;
+  let location: string | null = null;
+
+  // Look at first ~10 lines for headline/role info
+  const headSection = lines.slice(0, 15);
+
+  for (const line of headSection) {
+    // Skip very short or very long lines
+    if (line.length < 3 || line.length > 200) continue;
+
+    // "Title at Company" or "Title @ Company"
+    const atMatch = line.match(/^(.+?)\s+(?:at|@)\s+(.+)$/i);
+    if (atMatch && !jobTitle) {
+      const possibleTitle = atMatch[1].trim();
+      const possibleCompany = atMatch[2].trim();
+      // Validate it looks like a job title (not too long, not a URL)
+      if (possibleTitle.length < 80 && !possibleTitle.includes("http")) {
+        jobTitle = possibleTitle;
+        company = possibleCompany.split(/[|·]/).at(0)?.trim() ?? possibleCompany;
+        continue;
+      }
+    }
+
+    // "Title · Company" or "Title | Company"
+    const dotMatch = line.match(/^(.+?)\s*[·|]\s*(.+)$/);
+    if (dotMatch && !jobTitle) {
+      const possibleTitle = dotMatch[1].trim();
+      const possibleCompany = dotMatch[2].trim();
+      if (
+        possibleTitle.length < 80 &&
+        possibleCompany.length < 80 &&
+        !possibleTitle.includes("http") &&
+        /engineer|developer|manager|director|designer|analyst|lead|head|vp|cto|ceo|coo|founder|consultant|product|marketing|senior|junior|principal|staff|intern|associate|officer|specialist|coordinator|recruiter|partner|advisor|architect|scientist|researcher|writer|editor|strategist/i.test(possibleTitle)
+      ) {
+        jobTitle = possibleTitle;
+        company = possibleCompany.split(/[|·]/).at(0)?.trim() ?? possibleCompany;
+        continue;
+      }
+    }
+
+    // Look for location patterns (e.g., "London, England, United Kingdom" or "San Francisco Bay Area")
+    if (!location && /,\s*(United Kingdom|United States|Canada|Australia|Germany|France|India|Nigeria|Brazil|Area|Region)/i.test(line)) {
+      if (line.length < 80) {
+        location = line;
+        continue;
+      }
+    }
+
+    // Standalone role-like line near the top
+    if (!jobTitle && line.length < 80 && !line.includes("http") &&
+        /^(senior|junior|principal|staff|lead|chief|head|vp|director|manager|associate|intern)?\s*(software|product|data|marketing|sales|frontend|backend|fullstack|full.stack|devops|cloud|mobile|web|ux|ui|design|research|business|growth|people|hr|finance|operations|content|community|solutions|technical|engineering|program)/i.test(line)) {
+      jobTitle = line;
+    }
+  }
+
+  // Try to extract company from "Experience" section if not found yet
+  if (!company) {
+    const expIdx = lines.findIndex((l) => /^experience$/i.test(l));
+    if (expIdx !== -1 && expIdx + 1 < lines.length) {
+      // The line right after "Experience" is often the company name
+      const nextLines = lines.slice(expIdx + 1, expIdx + 5);
+      for (const l of nextLines) {
+        if (l.length > 2 && l.length < 80 && !l.includes("http") && !/^\d/.test(l)) {
+          company = l;
+          break;
+        }
+      }
+    }
+  }
+
+  return { jobTitle, company, location };
 }
 
 export async function POST(request: NextRequest) {
@@ -107,7 +200,33 @@ export async function POST(request: NextRequest) {
       (savedCandidates ?? []).map((c) => c.exa_id),
     );
 
-    // ── Exa search ───────────────────────────────────────────────────────
+    // ── Fetch exa_ids from excluded searches ─────────────────────────
+    const excludeSearchIds = filters?.excludeSearchIds ?? [];
+    if (excludeSearchIds.length > 0) {
+      // Get the search results (stored as raw_data) from previous searches
+      // We look up candidates that were found in those searches
+      const { data: excludedSearches } = await supabase
+        .from("searches")
+        .select("id, query")
+        .in("id", excludeSearchIds)
+        .eq("user_id", user.id);
+
+      if (excludedSearches && excludedSearches.length > 0) {
+        // Also check candidates table for candidates sourced from those searches
+        const { data: excludedCandidates } = await supabase
+          .from("candidates")
+          .select("exa_id")
+          .eq("user_id", user.id);
+
+        if (excludedCandidates) {
+          for (const c of excludedCandidates) {
+            if (c.exa_id) savedExaIds.add(c.exa_id);
+          }
+        }
+      }
+    }
+
+    // ── Exa search (with inline contents) ──────────────────────────────
     const desiredResults = filters?.numResults ?? 10;
     const searchResults = await searchCandidates(enrichedQuery, {
       numResults: desiredResults,
@@ -119,25 +238,34 @@ export async function POST(request: NextRequest) {
     const ids = searchResults.results.map((r) => r.id);
     const contents = ids.length > 0 ? await getContents(ids) : { results: [] };
 
-    // Merge search scores with content and map to Candidate shape
+
+    // Map results to Candidate shape, using both title parsing and text parsing
     const allCandidates = searchResults.results.map((sr) => {
       const content = contents.results.find((c) => c.id === sr.id);
       const author = sr.author ?? content?.author ?? null;
       const text = content?.text ?? null;
 
-      // Parse LinkedIn title for structured data
-      const parsed = parseLinkedInTitle(sr.title);
+      // Parse LinkedIn page title for structured data
+      const fromTitle = parseLinkedInTitle(sr.title);
 
-      // Prefer author field for name if available
-      const name = author || parsed.name;
+      // Parse text content for richer company/title data
+      const fromText = parseLinkedInText(text);
+
+      // Prefer author field for name, then title parse
+      const name = author || fromTitle.name;
+
+      // Merge: prefer text-parsed data (richer), fallback to title-parsed
+      const jobTitle = fromText.jobTitle || fromTitle.jobTitle;
+      const company = fromText.company || fromTitle.company;
+      const location = fromText.location;
 
       return {
         id: sr.id,
         exa_id: sr.id,
         name,
-        title: parsed.jobTitle,
-        company: parsed.company,
-        location: null,
+        title: jobTitle,
+        company,
+        location,
         linkedin_url: sr.url,
         email: null,
         phone: null,

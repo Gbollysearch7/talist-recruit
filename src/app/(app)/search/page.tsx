@@ -1,11 +1,8 @@
 "use client";
 
 import * as React from "react";
-import {
-  BookmarkPlus,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useSearch } from "@/hooks/use-search";
 import { useCandidates } from "@/hooks/use-candidates";
@@ -13,15 +10,29 @@ import { useSavedSearches } from "@/hooks/use-saved-searches";
 import { SearchInput } from "@/components/search/search-input";
 import { SearchFilters } from "@/components/search/search-filters";
 import { SearchResults } from "@/components/search/search-results";
+import { SearchToolbar } from "@/components/search/search-toolbar";
+import { SearchCriteriaPanel } from "@/components/search/search-criteria-panel";
 import type { Candidate } from "@/types/database";
 
-// ─── Constants ─────────────────────────────────────────────────────────────
-
-const RESULTS_PER_PAGE = 12;
-
-// ─── Page Component ────────────────────────────────────────────────────────
+const EXAMPLE_QUERIES = [
+  "5 Senior Software Engineers with Python experience",
+  "Digital Marketing Managers in New York",
+  "Frontend developers with React and TypeScript",
+  "Data Scientists with machine learning background",
+  "Product Designers who worked at startups",
+  "DevOps engineers with Kubernetes and AWS",
+];
 
 export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-full" />}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
+
+function SearchPageContent() {
+  const searchParams = useSearchParams();
   const {
     search,
     results,
@@ -37,34 +48,92 @@ export default function SearchPage() {
   const { saveSearch, isSaving: isSavingSearch } = useSavedSearches();
 
   const [hasSearched, setHasSearched] = React.useState(false);
-  const [currentPage, setCurrentPage] = React.useState(1);
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
   const [searchName, setSearchName] = React.useState("");
+  const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [resultCount, setResultCount] = React.useState(10);
+  const [selectedCandidateIds, setSelectedCandidateIds] = React.useState<
+    Set<string>
+  >(new Set());
+  const [enrichments, setEnrichments] = React.useState<
+    Record<string, boolean>
+  >({
+    email: true,
+    seniority: false,
+    interests: false,
+    skills: false,
+  });
+  const [excludedSearchIds, setExcludedSearchIds] = React.useState<
+    Set<string>
+  >(new Set());
 
-  // ── Pagination ──────────────────────────────────────────────────────────
-
-  const totalPages = Math.max(1, Math.ceil(results.length / RESULTS_PER_PAGE));
-  const paginatedResults = results.slice(
-    (currentPage - 1) * RESULTS_PER_PAGE,
-    currentPage * RESULTS_PER_PAGE
-  );
-
-  // Reset to page 1 when results change
+  // Auto-run search from URL params
+  const initialQuery = searchParams.get("q");
+  const lastAutoRunQuery = React.useRef<string | null>(null);
   React.useEffect(() => {
-    setCurrentPage(1);
+    if (initialQuery && initialQuery !== lastAutoRunQuery.current) {
+      lastAutoRunQuery.current = initialQuery;
+      setQuery(initialQuery);
+      setHasSearched(true);
+      setTimeout(() => {
+        search(initialQuery, { numResults: resultCount });
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
+
+  // Clear selection when results change
+  React.useEffect(() => {
+    setSelectedCandidateIds(new Set());
   }, [results]);
 
-  // ── Handlers ────────────────────────────────────────────────────────────
+  // ─── Parse criteria from query ──────────────────────────────────────
+  const parsedCriteria = React.useMemo(() => {
+    if (!query) return [];
+    const terms: string[] = [];
+    const words = query.split(/\s+/);
+    const roleKeywords =
+      /engineer|developer|manager|director|designer|analyst|lead|head|vp|cto|ceo|founder|consultant|product|marketing|senior|junior|principal|staff|recruiter|researcher|scientist|architect|strategist/i;
+    const locationPreps = ["in", "at", "from", "near"];
 
+    let rolePhrase = "";
+    let locationPhrase = "";
+    let inLocation = false;
+
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      const lower = word.toLowerCase();
+      if (locationPreps.includes(lower) && i + 1 < words.length) {
+        inLocation = true;
+        continue;
+      }
+      if (inLocation) {
+        locationPhrase += (locationPhrase ? " " : "") + word;
+      } else {
+        rolePhrase += (rolePhrase ? " " : "") + word;
+      }
+    }
+
+    if (rolePhrase) terms.push(rolePhrase);
+    if (locationPhrase) terms.push(locationPhrase);
+    terms.push("Professional profile");
+    return terms;
+  }, [query]);
+
+  // ─── Handlers ──────────────────────────────────────────────────────
   function handleSearch(searchQuery: string) {
     setHasSearched(true);
-    search(searchQuery, filters);
+    search(searchQuery, {
+      ...filters,
+      numResults: resultCount,
+      excludeSearchIds: Array.from(excludedSearchIds),
+    });
   }
 
   function handleApplyFilters() {
     if (query.trim()) {
       setHasSearched(true);
-      search(query, filters);
+      search(query, { ...filters, numResults: resultCount });
     }
   }
 
@@ -98,6 +167,16 @@ export default function SearchPage() {
     });
   }
 
+  function handleSaveSelected() {
+    for (const result of results) {
+      const key = result.exa_id || result.id;
+      if (selectedCandidateIds.has(key)) {
+        handleSaveCandidate(result);
+      }
+    }
+    setSelectedCandidateIds(new Set());
+  }
+
   function handleSaveSearch() {
     if (showSaveDialog && searchName.trim()) {
       saveSearch({
@@ -117,205 +196,293 @@ export default function SearchPage() {
     setSearchName("");
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────
+  function toggleEnrichment(key: string) {
+    setEnrichments((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedCandidateIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedCandidateIds.size === results.length) {
+      setSelectedCandidateIds(new Set());
+    } else {
+      setSelectedCandidateIds(
+        new Set(results.map((c) => c.exa_id || c.id))
+      );
+    }
+  }
+
+  function handleExampleClick(exampleQuery: string) {
+    setQuery(exampleQuery);
+    handleSearch(exampleQuery);
+  }
+
+  function toggleExcludeSearch(searchId: string) {
+    setExcludedSearchIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(searchId)) next.delete(searchId);
+      else next.add(searchId);
+      return next;
+    });
+  }
+
+  function handleFindMore() {
+    const newCount = resultCount + 10;
+    setResultCount(newCount);
+    search(query, { ...filters, numResults: newCount });
+  }
+
+  function handleExport() {
+    // TODO: implement CSV export
+  }
+
+  // ─── Render ────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#121212]">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Search</h1>
-            <p className="mt-1 text-sm text-[rgba(255,255,255,0.6)]">
-              Find and discover candidates using AI-powered search
+    <div className="min-h-full">
+      {/* ═══════════════════════════════════════════════════════════════
+          PRE-SEARCH STATE
+          ═══════════════════════════════════════════════════════════════ */}
+      {!hasSearched && (
+        <>
+          {/* Hero */}
+          <div className="text-center mb-6 pt-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-light)] bg-[var(--bg-surface)] px-3 py-1 mb-4">
+              <span
+                className="material-symbols-outlined text-[var(--primary)]"
+                style={{ fontSize: 14 }}
+              >
+                auto_awesome
+              </span>
+              <span className="text-[10px] font-medium text-[var(--primary)] uppercase tracking-wide">
+                AI-Powered Search
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">
+              Find your ideal candidates
+            </h1>
+            <p className="mt-2 text-sm text-[var(--text-tertiary)] max-w-lg mx-auto">
+              Describe who you&apos;re looking for in plain English. Our AI
+              searches the entire web to find people who match.
             </p>
           </div>
-          {hasSearched && query.trim() && (
-            <div className="flex items-center gap-2">
-              {showSaveDialog ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={searchName}
-                    onChange={(e) => setSearchName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveSearch();
-                      if (e.key === "Escape") handleCancelSaveSearch();
-                    }}
-                    placeholder="Search name..."
-                    autoFocus
-                    className={cn(
-                      "h-9 w-48 border border-[#333] bg-[#121212] px-3 text-sm text-white",
-                      "placeholder:text-white/30",
-                      "focus:border-white focus:outline-none focus:ring-1 focus:ring-white/30"
-                    )}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSaveSearch}
-                    disabled={!searchName.trim() || isSavingSearch}
-                    className={cn(
-                      "inline-flex h-9 items-center justify-center gap-1.5 border px-4 text-xs font-medium transition-colors duration-150",
-                      "bg-white text-[#121212] border-white hover:bg-white/90",
-                      "disabled:pointer-events-none disabled:opacity-50",
-                      "cursor-pointer select-none"
-                    )}
-                  >
-                    {isSavingSearch ? "Saving..." : "Confirm"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelSaveSearch}
-                    className={cn(
-                      "inline-flex h-9 items-center justify-center border border-[#333] px-4 text-xs font-medium text-white transition-colors duration-150",
-                      "hover:bg-white/5 cursor-pointer select-none"
-                    )}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
+
+          {/* Search Input with controls */}
+          <div className="max-w-3xl mx-auto">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              onSubmit={handleSearch}
+              isSearching={isSearching}
+              resultCount={resultCount}
+              onResultCountChange={setResultCount}
+              excludedSearchIds={excludedSearchIds}
+              onToggleExcludeSearch={toggleExcludeSearch}
+            />
+          </div>
+
+          {/* Example Queries */}
+          <div className="mt-10 max-w-3xl mx-auto">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-3 text-center">
+              Try an example
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {EXAMPLE_QUERIES.map((exampleQuery) => (
                 <button
+                  key={exampleQuery}
                   type="button"
-                  onClick={handleSaveSearch}
+                  onClick={() => handleExampleClick(exampleQuery)}
                   className={cn(
-                    "inline-flex h-9 items-center justify-center gap-1.5 border px-4 text-xs font-medium transition-colors duration-150",
-                    "bg-transparent text-white border-[#333] hover:bg-white/5 active:bg-white/10",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
-                    "cursor-pointer select-none"
+                    "text-left px-3 py-2.5 rounded border border-[var(--border-light)]",
+                    "text-xs text-[var(--text-tertiary)]",
+                    "hover:text-[var(--text-primary)] hover:border-[var(--border-default)] hover:bg-[var(--bg-surface)]",
+                    "transition-colors duration-150"
                   )}
                 >
-                  <BookmarkPlus className="h-3.5 w-3.5" />
-                  Save Search
+                  {exampleQuery}
                 </button>
-              )}
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          POST-SEARCH STATE
+          ═══════════════════════════════════════════════════════════════ */}
+      {hasSearched && (
+        <>
+          {/* Compact search input (no controls row in post-search) */}
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            onSubmit={handleSearch}
+            isSearching={isSearching}
+            resultCount={resultCount}
+            onResultCountChange={setResultCount}
+            excludedSearchIds={excludedSearchIds}
+            onToggleExcludeSearch={toggleExcludeSearch}
+            showControls={false}
+          />
+
+          {/* Save Search Dialog (inline) */}
+          {showSaveDialog && (
+            <div className="mt-2 flex items-center justify-end gap-2">
+              <input
+                type="text"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveSearch();
+                  if (e.key === "Escape") handleCancelSaveSearch();
+                }}
+                placeholder="Search name..."
+                autoFocus
+                className="input-base w-48 h-8"
+              />
+              <button
+                type="button"
+                onClick={handleSaveSearch}
+                disabled={!searchName.trim() || isSavingSearch}
+                className="btn btn-primary disabled:opacity-50"
+              >
+                {isSavingSearch ? "Saving..." : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelSaveSearch}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
             </div>
           )}
-        </div>
 
-        {/* Search Input */}
-        <SearchInput
-          value={query}
-          onChange={setQuery}
-          onSubmit={handleSearch}
-          isSearching={isSearching}
-        />
-
-        {/* Filters */}
-        <SearchFilters
-          filters={filters}
-          onChange={setFilters}
-          onApply={handleApplyFilters}
-          onClear={handleClearFilters}
-          className="mt-4"
-        />
-
-        {/* Results */}
-        <SearchResults
-          results={paginatedResults}
-          isSearching={isSearching}
-          hasSearched={hasSearched}
-          onSaveCandidate={handleSaveCandidate}
-          isSaving={isSaving}
-          className="mt-6"
-        />
-
-        {/* Pagination */}
-        {hasSearched && results.length > RESULTS_PER_PAGE && !isSearching && (
-          <div className="mt-8 flex items-center justify-center gap-1">
-            {/* Previous */}
-            <button
-              type="button"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className={cn(
-                "inline-flex h-9 w-9 items-center justify-center border border-[#333] text-white transition-colors duration-150",
-                "hover:bg-white/5 active:bg-white/10",
-                "disabled:pointer-events-none disabled:opacity-30",
-                "cursor-pointer select-none"
-              )}
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-
-            {/* Page numbers */}
-            {Array.from({ length: totalPages }).map((_, i) => {
-              const page = i + 1;
-              const isActive = page === currentPage;
-
-              // Show first, last, and pages around current
-              const showPage =
-                page === 1 ||
-                page === totalPages ||
-                Math.abs(page - currentPage) <= 1;
-
-              // Show ellipsis
-              const showEllipsisBefore =
-                page === currentPage - 2 && currentPage > 3;
-              const showEllipsisAfter =
-                page === currentPage + 2 && currentPage < totalPages - 2;
-
-              if (showEllipsisBefore || showEllipsisAfter) {
-                return (
-                  <span
-                    key={page}
-                    className="inline-flex h-9 w-9 items-center justify-center text-sm text-white/30"
-                  >
-                    ...
-                  </span>
-                );
-              }
-
-              if (!showPage) return null;
-
-              return (
-                <button
-                  key={page}
-                  type="button"
-                  onClick={() => setCurrentPage(page)}
-                  className={cn(
-                    "inline-flex h-9 w-9 items-center justify-center border text-sm font-medium transition-colors duration-150",
-                    "cursor-pointer select-none",
-                    isActive
-                      ? "border-white bg-white text-[#121212]"
-                      : "border-[#333] text-white hover:bg-white/5 active:bg-white/10"
-                  )}
-                >
-                  {page}
-                </button>
-              );
-            })}
-
-            {/* Next */}
-            <button
-              type="button"
-              onClick={() =>
-                setCurrentPage((p) => Math.min(totalPages, p + 1))
-              }
-              disabled={currentPage === totalPages}
-              className={cn(
-                "inline-flex h-9 w-9 items-center justify-center border border-[#333] text-white transition-colors duration-150",
-                "hover:bg-white/5 active:bg-white/10",
-                "disabled:pointer-events-none disabled:opacity-30",
-                "cursor-pointer select-none"
-              )}
-              aria-label="Next page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+          {/* Toolbar */}
+          <div className="mt-3">
+            <SearchToolbar
+              selectedCount={selectedCandidateIds.size}
+              showAdvanced={showAdvanced}
+              onFilter={() => setShowAdvanced(!showAdvanced)}
+              onExport={handleExport}
+              onSaveSelected={handleSaveSelected}
+              onEnrichment={() => {}}
+              onSaveSearch={handleSaveSearch}
+              isSaving={isSaving}
+              isSavingSearch={isSavingSearch}
+            />
           </div>
-        )}
 
-        {/* Page info */}
-        {hasSearched && results.length > RESULTS_PER_PAGE && !isSearching && (
-          <p className="mt-3 text-center text-xs text-[rgba(255,255,255,0.4)]">
-            Showing {(currentPage - 1) * RESULTS_PER_PAGE + 1}--
-            {Math.min(currentPage * RESULTS_PER_PAGE, results.length)} of{" "}
-            {results.length} candidates
-          </p>
-        )}
-      </div>
+          {/* Advanced Filter Panel */}
+          {showAdvanced && (
+            <div className="mt-2 rounded border border-[var(--border-light)] bg-[var(--bg-surface)] p-4 space-y-4">
+              <div>
+                <h3 className="text-xs font-semibold text-[var(--text-primary)] mb-1">
+                  Search Criteria
+                </h3>
+                <p className="text-[10px] text-[var(--text-muted)] mb-3">
+                  Add specific requirements candidates must meet
+                </p>
+                <SearchFilters
+                  filters={filters}
+                  onChange={setFilters}
+                  onApply={handleApplyFilters}
+                  onClear={handleClearFilters}
+                  embedded
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Two-column layout: Results (left) + Criteria Panel (right) */}
+          <div className="flex gap-0">
+            {/* Left: Results Table + Bottom Bar */}
+            <div className="flex-1 min-w-0">
+              <SearchResults
+                results={results}
+                isSearching={isSearching}
+                hasSearched={hasSearched}
+                onSaveCandidate={handleSaveCandidate}
+                isSaving={isSaving}
+                startIndex={0}
+                selectedIds={selectedCandidateIds}
+                onToggleSelect={toggleSelect}
+                onToggleSelectAll={toggleSelectAll}
+                criteria={parsedCriteria}
+              />
+
+              {/* Bottom Bar */}
+              {results.length > 0 && !isSearching && (
+                <div className="flex items-center justify-between border border-[var(--border-light)] border-t-0 bg-[var(--bg-elevated)] px-4 py-2">
+                  <span className="text-xs text-[var(--text-tertiary)]">
+                    <span className="text-[var(--text-primary)] font-medium">
+                      {results.length}
+                    </span>{" "}
+                    / match
+                  </span>
+
+                  <div className="flex items-center gap-1">
+                    {[25, 100].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => {
+                          setResultCount(n);
+                          search(query, { ...filters, numResults: n });
+                        }}
+                        className={cn(
+                          "px-2.5 py-1 rounded text-xs transition-colors",
+                          resultCount === n
+                            ? "bg-[var(--bg-surface)] text-[var(--text-primary)]"
+                            : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        )}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="px-2.5 py-1 rounded text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      Custom
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleFindMore}
+                    className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
+                  >
+                    Find more results
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14 }}
+                    >
+                      arrow_forward
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Criteria + Enrichments Panel */}
+            <div className="shrink-0 hidden lg:block">
+              <SearchCriteriaPanel
+                query={query}
+                enrichments={enrichments}
+                onToggleEnrichment={toggleEnrichment}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

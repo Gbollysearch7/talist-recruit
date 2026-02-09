@@ -1,7 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { Menu, Bell, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/app/user-menu";
 
@@ -9,115 +7,107 @@ interface TopBarProps {
   onToggleSidebar: () => void;
 }
 
-const pageTitles: Record<string, string> = {
-  "/app": "Dashboard",
-  "/app/search": "Search",
-  "/app/candidates": "Candidates",
-  "/app/pipeline": "Pipeline",
-  "/app/saved-searches": "Saved Searches",
-  "/app/settings": "Settings",
-};
-
-function getPageTitle(pathname: string): string {
-  // Exact match first
-  if (pageTitles[pathname]) {
-    return pageTitles[pathname];
-  }
-
-  // Check for prefix match (e.g., /app/candidates/123)
-  const segments = pathname.split("/").filter(Boolean);
-  if (segments.length >= 2) {
-    const baseRoute = `/${segments[0]}/${segments[1]}`;
-    if (pageTitles[baseRoute]) {
-      return pageTitles[baseRoute];
-    }
-  }
-
-  return "Dashboard";
-}
-
 export function TopBar({ onToggleSidebar }: TopBarProps) {
-  const pathname = usePathname();
-  const title = getPageTitle(pathname);
-
   return (
     <header
       className={cn(
         "flex items-center justify-between shrink-0",
-        "h-16 px-6 border-b border-[var(--mono-border)]",
-        "bg-[var(--mono-bg)]"
+        "h-12 px-4 border-b border-[var(--border-light)]",
+        "bg-[var(--bg-elevated)]/80 backdrop-blur-sm"
       )}
     >
-      {/* Left section */}
-      <div className="flex items-center gap-4">
+      {/* Left section - Brand */}
+      <div className="flex items-center gap-2">
         <button
           onClick={onToggleSidebar}
           className={cn(
-            "flex items-center justify-center w-8 h-8 rounded-lg",
-            "text-[var(--mono-muted)] hover:text-[var(--mono-fg)]",
-            "hover:bg-[var(--mono-whisper)] transition-colors duration-150"
+            "flex items-center justify-center w-8 h-8 rounded",
+            "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]",
+            "hover:bg-[var(--bg-surface)] transition-colors duration-150",
+            "lg:hidden"
           )}
           aria-label="Toggle sidebar"
         >
-          <Menu size={18} strokeWidth={1.5} />
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+            menu
+          </span>
         </button>
-
-        <h1 className="text-sm font-semibold text-[var(--mono-fg)] uppercase tracking-wide">
-          {title}
-        </h1>
+        <span
+          className="material-symbols-outlined text-[var(--text-tertiary)]"
+          style={{ fontSize: 20 }}
+        >
+          filter_center_focus
+        </span>
+        <span className="text-xs font-semibold text-[var(--text-secondary)] tracking-wide">
+          talist.ai
+        </span>
       </div>
 
-      {/* Center section - Search */}
-      <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
+      {/* Center - Compact search bar */}
+      <div className="hidden md:flex items-center flex-1 max-w-md mx-6">
         <div
           className={cn(
-            "flex items-center gap-2 w-full px-3 py-2 rounded-lg",
-            "bg-[var(--mono-whisper)] border border-[var(--mono-border)]",
-            "focus-within:border-[var(--mono-muted)] transition-colors duration-150"
+            "flex items-center gap-2 w-full px-3 py-1.5 rounded",
+            "bg-[var(--bg-surface)] border border-[var(--border-light)]",
+            "focus-within:border-[var(--border-focus)] transition-colors duration-150"
           )}
         >
-          <Search
-            size={14}
-            strokeWidth={1.5}
-            className="text-[var(--mono-ghost)] shrink-0"
-          />
+          <span
+            className="material-symbols-outlined text-[var(--text-muted)] shrink-0"
+            style={{ fontSize: 16 }}
+          >
+            search
+          </span>
           <input
             type="text"
             placeholder="Search candidates, jobs..."
             className={cn(
-              "w-full bg-transparent text-xs text-[var(--mono-fg)]",
-              "placeholder:text-[var(--mono-ghost)]",
+              "w-full bg-transparent text-xs text-[var(--text-primary)]",
+              "placeholder:text-[var(--text-muted)]",
               "focus:outline-none"
             )}
           />
-          <kbd
-            className={cn(
-              "hidden sm:inline-flex items-center px-1.5 py-0.5 rounded",
-              "text-[10px] text-[var(--mono-ghost)]",
-              "bg-[var(--mono-whisper)] border border-[var(--mono-border)]",
-              "font-mono"
-            )}
-          >
-            /
-          </kbd>
+          <div className="flex items-center gap-1 shrink-0">
+            <button className="p-0.5 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] transition-colors">
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                share
+              </span>
+            </button>
+            <button className="p-0.5 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] transition-colors">
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                content_copy
+              </span>
+            </button>
+            <button className="p-0.5 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] transition-colors">
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                history
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Right section */}
-      <div className="flex items-center gap-3">
-        {/* Notification bell */}
+      <div className="flex items-center gap-2">
         <button
           className={cn(
-            "relative flex items-center justify-center w-8 h-8 rounded-lg",
-            "text-[var(--mono-muted)] hover:text-[var(--mono-fg)]",
-            "hover:bg-[var(--mono-whisper)] transition-colors duration-150"
+            "flex items-center gap-1.5 px-2.5 py-1 rounded text-xs",
+            "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]",
+            "hover:bg-[var(--bg-surface)] transition-colors duration-150"
           )}
-          aria-label="Notifications"
         >
-          <Bell size={16} strokeWidth={1.5} />
-          {/* Notification dot placeholder */}
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[var(--mono-success)]" />
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+            feedback
+          </span>
+          <span className="hidden sm:inline">Feedback</span>
         </button>
+
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--bg-surface)] text-xs text-[var(--text-secondary)]">
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+            toll
+          </span>
+          <span>Credits</span>
+        </div>
 
         {/* User menu */}
         <UserMenu />

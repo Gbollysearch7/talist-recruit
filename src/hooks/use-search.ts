@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchStore } from "@/stores/search-store";
 import type { SearchFilters } from "@/stores/search-store";
 
@@ -39,6 +39,7 @@ interface SearchResponse {
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
 export function useSearch() {
+  const queryClient = useQueryClient();
   const {
     query,
     filters,
@@ -71,6 +72,7 @@ export function useSearch() {
     onSuccess: (data) => {
       setResults(data.candidates as any);
       setIsSearching(false);
+      queryClient.invalidateQueries({ queryKey: ["search-history"] });
     },
     onError: () => {
       setIsSearching(false);

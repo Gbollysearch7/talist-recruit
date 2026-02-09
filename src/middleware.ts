@@ -5,7 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 const authRoutes = ["/login", "/signup"];
 
 // Protected routes that require authentication
-const protectedRoutes = ["/search", "/candidates", "/pipeline", "/saved-searches", "/settings"];
+const protectedRoutes = ["/dashboard", "/search", "/candidates", "/pipeline", "/saved-searches", "/settings"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

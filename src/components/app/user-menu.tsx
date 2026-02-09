@@ -27,7 +27,7 @@ export function UserMenu() {
       label: "Profile",
       icon: User,
       onClick: () => {
-        router.push("/app/settings");
+        router.push("/settings");
         setOpen(false);
       },
     },
@@ -35,7 +35,7 @@ export function UserMenu() {
       label: "Settings",
       icon: Settings,
       onClick: () => {
-        router.push("/app/settings");
+        router.push("/settings");
         setOpen(false);
       },
     },
