@@ -127,7 +127,7 @@ export default function Pricing() {
                 className={`mt-12 inline-flex items-center justify-center gap-3 w-full py-4 text-sm font-bold uppercase tracking-widest transition-all group ${
                   plan.highlighted
                     ? "bg-black text-white hover:bg-gray-900"
-                    : "bg-white text-black hover:bg-gray-200"
+                    : "bg-emerald-500 text-black hover:bg-emerald-400"
                 }`}
               >
                 {plan.cta}

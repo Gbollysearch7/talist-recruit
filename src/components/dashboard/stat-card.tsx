@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ interface StatCardProps {
   value: number | string;
   change?: number;
   variant?: StatCardVariant;
+  href?: string;
   className?: string;
 }
 
@@ -39,6 +41,7 @@ export function StatCard({
   value,
   change,
   variant = "candidates",
+  href,
   className,
 }: StatCardProps) {
   const isPositive = change !== undefined && change >= 0;
@@ -47,20 +50,13 @@ export function StatCard({
       ? `${isPositive ? "+" : ""}${change.toFixed(1)}%`
       : null;
 
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-4 p-5",
-        "bg-[var(--mono-bg,#121212)] border border-[var(--mono-border,#333333)]",
-        "hover:border-white/20 transition-colors duration-150",
-        className
-      )}
-    >
+  const cardContent = (
+    <>
       {/* Header: icon + change */}
       <div className="flex items-center justify-between">
         <div
           className={cn(
-            "flex h-10 w-10 items-center justify-center border",
+            "flex h-10 w-10 items-center justify-center rounded border",
             iconBgMap[variant]
           )}
         >
@@ -86,13 +82,31 @@ export function StatCard({
 
       {/* Value + label */}
       <div className="flex flex-col gap-1">
-        <span className="text-2xl font-bold tracking-tight text-white">
+        <span className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
           {typeof value === "number" ? value.toLocaleString() : value}
         </span>
-        <span className="text-xs font-medium uppercase tracking-wider text-[var(--mono-muted,rgba(255,255,255,0.6))]">
+        <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-tertiary)]">
           {label}
         </span>
       </div>
-    </div>
+    </>
   );
+
+  const cardClasses = cn(
+    "flex flex-col gap-4 p-5 rounded",
+    "bg-[var(--bg-elevated)] border border-[var(--border-light)]",
+    "hover:border-[var(--border-default)] transition-all duration-150",
+    href && "cursor-pointer hover:shadow-[var(--shadow-sm)]",
+    className
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={cardClasses}>
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return <div className={cardClasses}>{cardContent}</div>;
 }

@@ -10,7 +10,7 @@ import { useSavedSearches } from "@/hooks/use-saved-searches";
 import { SearchInput } from "@/components/search/search-input";
 import { SearchFilters } from "@/components/search/search-filters";
 import { SearchResults } from "@/components/search/search-results";
-import { SearchToolbar } from "@/components/search/search-toolbar";
+import { SearchToolbar, type SortOption } from "@/components/search/search-toolbar";
 import { SearchCriteriaPanel } from "@/components/search/search-criteria-panel";
 import type { Candidate } from "@/types/database";
 
@@ -66,6 +66,9 @@ function SearchPageContent() {
   const [excludedSearchIds, setExcludedSearchIds] = React.useState<
     Set<string>
   >(new Set());
+  const [sortBy, setSortBy] = React.useState<SortOption>("relevance");
+  const [isExporting, setIsExporting] = React.useState(false);
+  const [showEnrichmentPanel, setShowEnrichmentPanel] = React.useState(true);
 
   // Auto-run search from URL params
   const initialQuery = searchParams.get("q");
@@ -240,8 +243,54 @@ function SearchPageContent() {
   }
 
   function handleExport() {
-    // TODO: implement CSV export
+    if (results.length === 0) return;
+    setIsExporting(true);
+    try {
+      const headers = ["Name", "Title", "Company", "Location", "LinkedIn URL", "Email", "Skills"];
+      const rows = results.map((r) => [
+        r.name ?? "",
+        r.title ?? "",
+        r.company ?? "",
+        r.location ?? "",
+        r.linkedin_url ?? "",
+        r.email ?? "",
+        (r.skills ?? []).join("; "),
+      ]);
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row) =>
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        ),
+      ].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `talist-search-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
   }
+
+  function handleSort(sort: SortOption) {
+    setSortBy(sort);
+  }
+
+  // ─── Sort results ─────────────────────────────────────────────────
+  const sortedResults = React.useMemo(() => {
+    if (sortBy === "relevance") return results;
+    const sorted = [...results];
+    sorted.sort((a, b) => {
+      const valA = (sortBy === "name" ? a.name : sortBy === "company" ? a.company : a.title) ?? "";
+      const valB = (sortBy === "name" ? b.name : sortBy === "company" ? b.company : b.title) ?? "";
+      return valA.localeCompare(valB);
+    });
+    return sorted;
+  }, [results, sortBy]);
 
   // ─── Render ────────────────────────────────────────────────────────
 
@@ -373,10 +422,14 @@ function SearchPageContent() {
               onFilter={() => setShowAdvanced(!showAdvanced)}
               onExport={handleExport}
               onSaveSelected={handleSaveSelected}
-              onEnrichment={() => {}}
+              onEnrichment={() => setShowEnrichmentPanel(!showEnrichmentPanel)}
               onSaveSearch={handleSaveSearch}
+              onSort={handleSort}
+              currentSort={sortBy}
+              isExporting={isExporting}
               isSaving={isSaving}
               isSavingSearch={isSavingSearch}
+              hasResults={results.length > 0}
             />
           </div>
 
@@ -406,7 +459,7 @@ function SearchPageContent() {
             {/* Left: Results Table + Bottom Bar */}
             <div className="flex-1 min-w-0">
               <SearchResults
-                results={results}
+                results={sortedResults}
                 isSearching={isSearching}
                 hasSearched={hasSearched}
                 onSaveCandidate={handleSaveCandidate}
@@ -473,13 +526,16 @@ function SearchPageContent() {
             </div>
 
             {/* Right: Criteria + Enrichments Panel */}
-            <div className="shrink-0 hidden lg:block">
-              <SearchCriteriaPanel
-                query={query}
-                enrichments={enrichments}
-                onToggleEnrichment={toggleEnrichment}
-              />
-            </div>
+            {showEnrichmentPanel && (
+              <div className="shrink-0 hidden lg:block">
+                <SearchCriteriaPanel
+                  query={query}
+                  enrichments={enrichments}
+                  onToggleEnrichment={toggleEnrichment}
+                  onFindMore={handleFindMore}
+                />
+              </div>
+            )}
           </div>
         </>
       )}

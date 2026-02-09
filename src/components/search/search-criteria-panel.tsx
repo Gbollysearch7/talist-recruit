@@ -7,6 +7,7 @@ interface SearchCriteriaPanelProps {
   query: string;
   enrichments: Record<string, boolean>;
   onToggleEnrichment: (key: string) => void;
+  onFindMore?: () => void;
 }
 
 const ENRICHMENT_OPTIONS = [
@@ -109,6 +110,7 @@ export function SearchCriteriaPanel({
   query,
   enrichments,
   onToggleEnrichment,
+  onFindMore,
 }: SearchCriteriaPanelProps) {
   const [activeTab, setActiveTab] = React.useState<"criteria" | "details">(
     "criteria"
@@ -272,7 +274,10 @@ export function SearchCriteriaPanel({
 
       {/* Footer link */}
       <div className="border-t border-[var(--border-light)] px-4 py-2">
-        <button className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline w-full justify-center">
+        <button
+          onClick={onFindMore}
+          className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline w-full justify-center"
+        >
           Find more results
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
             arrow_forward

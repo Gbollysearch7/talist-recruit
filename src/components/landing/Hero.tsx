@@ -52,7 +52,7 @@ export default function Hero() {
       <div className="max-w-5xl w-full text-center flex flex-col items-center space-y-8 z-10">
         {/* Version badge */}
         <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] font-mono text-white/40 uppercase tracking-[0.2em] border border-white/10 px-3 py-1 rounded-full">
+          <span className="text-[10px] font-mono text-emerald-400/60 uppercase tracking-[0.2em] border border-emerald-500/20 px-3 py-1 rounded-full">
             Engine v.1.0
           </span>
         </div>
@@ -60,7 +60,7 @@ export default function Hero() {
         {/* Headline */}
         <h1 className="text-6xl md:text-8xl lg:text-9xl font-medium tracking-tighter leading-[0.9] text-white">
           TALIST<br />
-          <span className="text-white/30">.AI</span>
+          <span className="text-emerald-500/60">.AI</span>
         </h1>
 
         {/* Subheadline */}
@@ -81,7 +81,7 @@ export default function Hero() {
                 style={{ animation: "typing-cursor 1s step-end infinite" }}
               />
             </div>
-            <button className="shrink-0 bg-white text-black px-6 py-4 text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors">
+            <button className="shrink-0 bg-emerald-500 text-black px-6 py-4 text-xs font-bold uppercase tracking-widest hover:bg-emerald-400 transition-colors">
               Search
             </button>
           </div>
@@ -91,13 +91,13 @@ export default function Hero() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-0 pt-6 w-full max-w-md">
           <a
             href="/signup"
-            className="w-full sm:w-1/2 px-8 py-4 bg-white hover:bg-gray-200 text-black font-bold text-sm uppercase tracking-widest transition-all border border-white text-center"
+            className="w-full sm:w-1/2 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm uppercase tracking-widest transition-all border border-emerald-500 text-center"
           >
             Start Engine
           </a>
           <a
             href="#how-it-works"
-            className="w-full sm:w-1/2 px-8 py-4 bg-transparent hover:bg-white/5 text-white font-bold text-sm uppercase tracking-widest transition-all border border-white border-t-0 sm:border-t sm:border-l-0 text-center"
+            className="w-full sm:w-1/2 px-8 py-4 bg-transparent hover:bg-emerald-500/10 text-emerald-400 font-bold text-sm uppercase tracking-widest transition-all border border-emerald-500/40 border-t-0 sm:border-t sm:border-l-0 text-center"
           >
             Protocol
           </a>

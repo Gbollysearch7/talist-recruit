@@ -39,7 +39,7 @@ export default function Navbar() {
         <div className="border-l border-white/20 pl-6">
           <a
             href="/signup"
-            className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold hover:bg-gray-200 transition-colors uppercase tracking-wide"
+            className="bg-emerald-500 text-black px-4 py-1.5 rounded-full text-xs font-bold hover:bg-emerald-400 transition-colors uppercase tracking-wide"
           >
             Join
           </a>
@@ -80,7 +80,7 @@ export default function Navbar() {
             <div className="border-t border-white/10 pt-4 mt-2">
               <a
                 href="/signup"
-                className="block text-center bg-white text-black px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wide"
+                className="block text-center bg-emerald-500 text-black px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wide hover:bg-emerald-400 transition-colors"
               >
                 Join
               </a>

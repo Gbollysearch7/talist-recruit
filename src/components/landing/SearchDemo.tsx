@@ -154,7 +154,7 @@ export default function SearchDemo() {
         <div className="mt-24 text-center">
           <a
             href="/signup"
-            className="inline-flex items-center justify-center gap-4 px-12 py-5 bg-white text-black font-bold text-sm uppercase tracking-widest hover:bg-gray-200 transition-all rounded-full group"
+            className="inline-flex items-center justify-center gap-4 px-12 py-5 bg-emerald-500 text-black font-bold text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all rounded-full group"
           >
             Initialise Search
             <ArrowUpRight
